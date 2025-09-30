@@ -1,0 +1,54 @@
+# Lagos Security Sentiment Analysis - Requirements
+# Compatible with Python 3.9, 3.10, 3.11, 3.12
+
+# Web Framework
+flask==2.3.3
+flask-cors==4.0.0
+Werkzeug==2.3.7
+
+# Data Processing
+pandas==2.0.3
+numpy==1.24.3
+
+# Text Processing & Sentiment Analysis
+textblob==0.17.1
+
+# HTTP and Async Operations
+aiohttp==3.8.5
+requests==2.31.0
+
+# Social Media APIs
+tweepy==4.14.0
+
+# Task Scheduling
+schedule==1.2.0
+
+# Date/Time Utilities
+python-dateutil==2.8.2
+pytz==2023.3
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# Production Server
+gunicorn==21.2.0
+
+# Testing (optional, but included)
+pytest==7.4.0
+pytest-asyncio==0.21.1
+
+================================================================
+
+# Complete fresh start with Python 3.11
+cd /Users/harbooh/Documents/ssm_agent/lagos-security-sentiment
+rm -rf venv
+brew install python@3.11
+/opt/homebrew/bin/python3.11 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+python -m textblob.download_corpora
+mkdir -p data logs backups
+cp .env.example .env
+python -c "from app.database.manager import DatabaseManager; DatabaseManager()"
+echo "✅ Setup complete! Run: python -m app.main"
