@@ -13,15 +13,23 @@ from app.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
+from app.core.csv_data_loader import CSVDataLoader
+
 class DataCollector:
-    """Collects data from various sources"""
-    
     def __init__(self):
         self.bias_corrector = BiasCorrector()
         self.lagos_areas = settings.data_collection.lagos_areas
         self.security_keywords = settings.data_collection.security_keywords
         
-        # Initialize APIs if tokens are available
+        # Add CSV loader
+        self.csv_loader = None
+        try:
+            self.csv_loader = CSVDataLoader("ikeja_security_social_media.csv")
+            logger.info("CSV data loader initialized successfully")
+        except Exception as e:
+            logger.warning(f"CSV loader not available: {e}")
+        
+        # Initialize Twitter client
         self.twitter_client = None
         if settings.data_collection.twitter_bearer_token:
             self.twitter_client = tweepy.Client(
@@ -75,47 +83,64 @@ class DataCollector:
         
         return False
     
+
     async def collect_twitter_data(self, limit: int = 100) -> List[SentimentData]:
         """Collect Twitter data"""
         results = []
         
-        if not self.twitter_client:
-            # Generate mock data for demonstration
-            return await self._generate_mock_twitter_data(limit)
+        # Priority 1: Use CSV data if available
+        if self.csv_loader:
+            csv_data = self.csv_loader.get_sample_data(limit=limit, source_filter='twitter')
+            if csv_data:
+                logger.info(f"Using {len(csv_data)} records from CSV")
+                return csv_data
         
-        try:
-            # Real Twitter API implementation
-            query = "Lagos OR Nigeria (security OR crime OR traffic OR safety) -is:retweet lang:en"
-            tweets = tweepy.Paginator(
-                self.twitter_client.search_recent_tweets,
-                query=query,
-                max_results=min(100, limit),
-                tweet_fields=['created_at', 'public_metrics', 'geo']
-            ).flatten(limit=limit)
-            
-            for tweet in tweets:
-                if self.is_security_related(tweet.text):
-                    raw_sentiment = TextBlob(tweet.text).sentiment.polarity
-                    adjusted_sentiment = self.bias_corrector.adjust_sentiment(raw_sentiment, 'twitter')
+        # Priority 2: Use real Twitter API if configured
+        if self.twitter_client:
+            try:
+                # Real Twitter API implementation
+                query = "Lagos OR Nigeria (security OR crime OR traffic OR safety) -is:retweet lang:en"
+                tweets = tweepy.Paginator(
+                    self.twitter_client.search_recent_tweets,
+                    query=query,
+                    max_results=min(100, limit),
+                    tweet_fields=['created_at', 'public_metrics', 'geo']
+                ).flatten(limit=limit)
+                
+                for tweet in tweets:
+                    if self.is_security_related(tweet.text):
+                        raw_sentiment = TextBlob(tweet.text).sentiment.polarity
+                        adjusted_sentiment = self.bias_corrector.adjust_sentiment(raw_sentiment, 'twitter')
+                        
+                        data = SentimentData(
+                            source='twitter',
+                            text=tweet.text,
+                            raw_sentiment=raw_sentiment,
+                            adjusted_sentiment=adjusted_sentiment,
+                            location=self.extract_location(tweet.text),
+                            timestamp=tweet.created_at or datetime.now(),
+                            confidence=0.7,
+                            category=self.categorize_security_issue(tweet.text),
+                            language=self.detect_language(tweet.text)
+                        )
+                        results.append(data)
                     
-                    data = SentimentData(
-                        source='twitter',
-                        text=tweet.text,
-                        raw_sentiment=raw_sentiment,
-                        adjusted_sentiment=adjusted_sentiment,
-                        location=self.extract_location(tweet.text),
-                        timestamp=tweet.created_at or datetime.now(),
-                        confidence=0.7,
-                        category=self.categorize_security_issue(tweet.text),
-                        language=self.detect_language(tweet.text)
-                    )
-                    results.append(data)
-                    
-        except Exception as e:
-            logger.error(f"Twitter collection error: {e}")
-            return await self._generate_mock_twitter_data(limit)
+            except Exception as e:
+                logger.error(f"Twitter collection error: {e}")
         
-        return results
+        # Priority 3: Fall back to hardcoded mock data
+        return await self._generate_mock_twitter_data(limit)
+
+    async def collect_all_csv_data(self, limit: int = 200) -> List[SentimentData]:
+        """
+        Collect all data from CSV regardless of source
+        Useful for bulk testing
+        """
+        if not self.csv_loader:
+            logger.warning("CSV loader not available")
+            return []
+        
+        return self.csv_loader.get_sample_data(limit=limit)
     
     async def collect_news_data(self, limit: int = 50) -> List[SentimentData]:
         """Collect news data"""
