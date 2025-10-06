@@ -33,10 +33,9 @@ chmod +x setup.sh
 
 # Due to some package dependencies, run with python 3.11
 # Complete fresh start with Python 3.11 
-cd /Users/harbooh/Documents/ssm_agent/lagos-security-sentiment 
+cd lagos-security-sentiment 
 rm -rf venv 
 brew install python@3.11 
-
 /opt/homebrew/bin/python3.11 -m venv venv 
 source venv/bin/activate
 
