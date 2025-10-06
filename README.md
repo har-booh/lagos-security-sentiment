@@ -24,7 +24,7 @@ A production-ready sentiment analysis system for monitoring security-related dis
 
 ```bash
 # Clone and setup
-git clone <repository-url>
+git clone https://github.com/har-booh/lagos-security-sentiment
 cd lagos-security-sentiment
 
 # Run setup script
