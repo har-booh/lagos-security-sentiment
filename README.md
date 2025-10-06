@@ -20,6 +20,42 @@ A production-ready sentiment analysis system for monitoring security-related dis
 - 2GB RAM minimum
 - 10GB storage space
 
+### Option 0:
+
+```bash
+# Clone and setup
+git clone <repository-url>
+cd lagos-security-sentiment
+
+# Run setup script
+chmod +x setup.sh
+./setup.sh
+
+# Due to some package dependencies, run with python 3.11
+# Complete fresh start with Python 3.11 
+cd /Users/harbooh/Documents/ssm_agent/lagos-security-sentiment 
+rm -rf venv 
+brew install python@3.11 
+
+/opt/homebrew/bin/python3.11 -m venv venv 
+source venv/bin/activate
+
+pip install --upgrade pip
+pip install -r requirements.txt 
+python -m textblob.download_corpora 
+
+mkdir -p data logs backups
+
+# To run
+python -m app.main
+
+
+# To run dashboard
+source venv/bin/activate
+streamlit run dashboard.py
+
+```
+
 ### Option 1: Local Development
 
 ```bash
